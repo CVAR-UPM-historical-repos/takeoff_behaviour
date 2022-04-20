@@ -10,10 +10,6 @@
 #include <pluginlib/class_loader.hpp>
 #include "takeoff_plugin_base/takeoff_base.hpp"
 
-#define DEFAULT_TAKEOFF_ALTITUDE 1.0 // [m]
-#define DEFAULT_TAKEOFF_SPEED 0.4    // [m/s]
-#define TAKEOFF_HEIGHT_THRESHOLD 0.1 // [m]
-
 class TakeOffBehaviour : public as2::BasicBehaviour<as2_msgs::action::TakeOff>
 {
 public:
@@ -21,12 +17,16 @@ public:
 
     TakeOffBehaviour() : as2::BasicBehaviour<as2_msgs::action::TakeOff>(as2_names::actions::behaviours::takeoff)
     {
+        this->declare_parameter("default_takeoff_altitude");
+        this->declare_parameter("default_takeoff_speed");
+        this->declare_parameter("takeoff_height_threshold");
+
         auto loader_ = std::make_shared<pluginlib::ClassLoader<takeoff_base::TakeOffBase>>("takeoff_plugin_base", "takeoff_base::TakeOffBase");
 
         try
         {
             takeoff_speed_ = loader_->createSharedInstance("takeoff_plugins::TakeOffSpeed");
-            takeoff_speed_->initialize(this, TAKEOFF_HEIGHT_THRESHOLD);
+            takeoff_speed_->initialize(this, this->get_parameter("takeoff_height_threshold").as_double());
             RCLCPP_INFO(this->get_logger(), "PLUGIN LOADED");
         }
         catch (pluginlib::PluginlibException &ex)
@@ -49,10 +49,10 @@ public:
             return rclcpp_action::GoalResponse::REJECT;
         }
 
-        // TODO: check 
+        // TODO: check
         std::shared_ptr<as2_msgs::action::TakeOff::Goal> new_goal;
-        new_goal->takeoff_speed = (goal->takeoff_speed != 0.0f) ? goal->takeoff_speed : DEFAULT_TAKEOFF_SPEED;
-        new_goal->takeoff_height = (goal->takeoff_height != 0.0f) ? goal->takeoff_height : DEFAULT_TAKEOFF_ALTITUDE;
+        new_goal->takeoff_speed = (goal->takeoff_speed != 0.0f) ? goal->takeoff_speed : this->get_parameter("default_takeoff_speed").as_double();
+        new_goal->takeoff_height = (goal->takeoff_height != 0.0f) ? goal->takeoff_height : this->get_parameter("default_takeoff_altitude").as_double();
 
         RCLCPP_INFO(this->get_logger(),
                     "TakeOffBehaviour: TakeOff with speed %f and height %f",
