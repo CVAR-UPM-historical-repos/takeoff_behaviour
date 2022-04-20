@@ -2,7 +2,6 @@
 #define TAKEOFF_BASE_HPP
 
 #include "as2_core/node.hpp"
-
 #include "as2_core/names/actions.hpp"
 #include "as2_core/names/topics.hpp"
 
@@ -11,10 +10,6 @@
 #include <as2_msgs/action/take_off.hpp>
 #include <nav_msgs/msg/odometry.hpp>
 
-#define DEFAULT_TAKEOFF_ALTITUDE 1.0 // [m]
-#define DEFAULT_TAKEOFF_SPEED 0.4    // [m/s]
-#define TAKEOFF_HEIGHT_THRESHOLD 0.1 // [m]
-
 namespace takeoff_base
 {
     class TakeOffBase
@@ -22,9 +17,10 @@ namespace takeoff_base
     public:
         using GoalHandleTakeoff = rclcpp_action::ServerGoalHandle<as2_msgs::action::TakeOff>;
 
-        void initialize(as2::Node *node_ptr)
+        void initialize(as2::Node *node_ptr, float takeoff_height_threshold)
         {
             node_ptr_ = node_ptr;
+            takeoff_height_threshold_ = takeoff_height_threshold;
             odom_sub_ = node_ptr_->create_subscription<nav_msgs::msg::Odometry>(
                 node_ptr_->generate_global_name(as2_names::topics::self_localization::odom), as2_names::topics::self_localization::qos,
                 std::bind(&TakeOffBase::odomCb, this, std::placeholders::_1));
@@ -54,6 +50,7 @@ namespace takeoff_base
 
     protected:
         as2::Node *node_ptr_;
+        float takeoff_height_threshold_;
 
         std::atomic<float> actual_heigth_;
         std::atomic<float> actual_z_speed_;
