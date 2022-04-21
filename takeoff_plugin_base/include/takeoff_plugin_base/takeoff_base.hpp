@@ -30,7 +30,7 @@ namespace takeoff_base
 
         virtual rclcpp_action::GoalResponse onAccepted(const std::shared_ptr<const as2_msgs::action::TakeOff::Goal> goal) = 0;
         virtual rclcpp_action::CancelResponse onCancel(const std::shared_ptr<GoalHandleTakeoff> goal_handle) = 0;
-        virtual void onExecute(const std::shared_ptr<GoalHandleTakeoff> goal_handle) = 0;
+        virtual bool onExecute(const std::shared_ptr<GoalHandleTakeoff> goal_handle) = 0;
 
         virtual ~TakeOffBase(){};
 
