@@ -1,6 +1,6 @@
 // "Copyright [year] <Copyright Owner>"
 
-#include "takeoff_behaviour.hpp"
+#include "takeoff_behaviour/takeoff_behaviour.hpp"
 #include "as2_core/core_functions.hpp"
 
 int main(int argc, char * argv[])
