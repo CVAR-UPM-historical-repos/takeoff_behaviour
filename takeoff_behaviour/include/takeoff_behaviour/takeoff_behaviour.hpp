@@ -19,6 +19,7 @@ public:
 
     TakeOffBehaviour() : as2::BasicBehaviour<as2_msgs::action::TakeOff>(as2_names::actions::behaviours::takeoff)
     {
+        this->declare_parameter("default_takeoff_plugin");
         this->declare_parameter("default_takeoff_altitude");
         this->declare_parameter("default_takeoff_speed");
         this->declare_parameter("takeoff_height_threshold");
@@ -27,7 +28,7 @@ public:
 
         try
         {
-            takeoff_speed_ = loader_->createSharedInstance("takeoff_plugins::TakeOffSpeed");
+            takeoff_speed_ = loader_->createSharedInstance(this->get_parameter("default_takeoff_plugin").as_string());
             takeoff_speed_->initialize(this, this->get_parameter("takeoff_height_threshold").as_double());
             RCLCPP_INFO(this->get_logger(), "PLUGIN LOADED");
         }
