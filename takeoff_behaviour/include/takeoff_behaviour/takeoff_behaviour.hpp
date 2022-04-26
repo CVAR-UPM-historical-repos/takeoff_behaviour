@@ -37,7 +37,7 @@ public:
             RCLCPP_ERROR(this->get_logger(), "The plugin failed to load for some reason. Error: %s\n", ex.what());
         }
  
-        state_machine_event_cli_ = this->create_client<as2_msgs::srv::SetPlatformStateMachineEvent>(this->generate_global_name(as2_names::services::platform::setplatformstatemachineevent));
+        state_machine_event_cli_ = this->create_client<as2_msgs::srv::SetPlatformStateMachineEvent>(this->generate_global_name(as2_names::services::platform::set_platform_state_machine_event));
         if ( state_machine_event_cli_->wait_for_service() ) 
         {
             RCLCPP_INFO(this->get_logger(), "TakeOff Behaviour ready!");
@@ -115,7 +115,7 @@ private:
             // Local aux node to call client asyncronous, since can not spin at the same node
             std::shared_ptr<rclcpp::Node> aux_node_ptr;
             aux_node_ptr = std::make_shared<rclcpp::Node>("takeoff_baheviour_aux_node");
-            auto state_machine_event_cli = aux_node_ptr->create_client<as2_msgs::srv::SetPlatformStateMachineEvent>(this->generate_global_name(as2_names::services::platform::setplatformstatemachineevent));
+            auto state_machine_event_cli = aux_node_ptr->create_client<as2_msgs::srv::SetPlatformStateMachineEvent>(this->generate_global_name(as2_names::services::platform::set_platform_state_machine_event));
             auto future = state_machine_event_cli->async_send_request(request);
             return rclcpp::spin_until_future_complete(aux_node_ptr, future);
         }
