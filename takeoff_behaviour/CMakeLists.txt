@@ -19,10 +19,8 @@ set(PROJECT_DEPENDENCIES
   takeoff_plugin_base
   rclcpp
   rclcpp_action
-  nav_msgs
   as2_core
   as2_msgs
-  trajectory_msgs
 )
 
 foreach(DEPENDENCY ${PROJECT_DEPENDENCIES})
