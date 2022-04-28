@@ -19,7 +19,6 @@ def generate_launch_description():
         Node(
             package='takeoff_behaviour',
             executable='takeoff_behaviour_node',
-            name='takeoff_behaviour_node',
             namespace=LaunchConfiguration('drone_id'),
             parameters=[config],
             output='screen',
