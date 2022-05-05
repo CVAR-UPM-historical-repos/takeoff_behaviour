@@ -30,14 +30,16 @@ public:
         {
             takeoff_speed_ = loader_->createSharedInstance(this->get_parameter("default_takeoff_plugin").as_string());
             takeoff_speed_->initialize(this, this->get_parameter("takeoff_height_threshold").as_double());
-            RCLCPP_INFO(this->get_logger(), "PLUGIN LOADED");
+            RCLCPP_INFO(this->get_logger(), "PLUGIN LOADED: %s", this->get_parameter("default_takeoff_plugin").as_string().c_str());
         }
         catch (pluginlib::PluginlibException &ex)
         {
             RCLCPP_ERROR(this->get_logger(), "The plugin failed to load for some reason. Error: %s\n", ex.what());
         }
  
-        state_machine_event_cli_ = this->create_client<as2_msgs::srv::SetPlatformStateMachineEvent>(this->generate_global_name(as2_names::services::platform::set_platform_state_machine_event));
+        state_machine_event_cli_ = this->create_client<as2_msgs::srv::SetPlatformStateMachineEvent>(
+            this->generate_global_name(as2_names::services::platform::set_platform_state_machine_event)
+        );
         if ( state_machine_event_cli_->wait_for_service() ) 
         {
             RCLCPP_INFO(this->get_logger(), "TakeOff Behaviour ready!");
@@ -55,12 +57,6 @@ public:
         if (goal->takeoff_speed < 0.0f)
         {
             RCLCPP_ERROR(this->get_logger(), "TakeOffBehaviour: Invalid takeoff speed");
-            return rclcpp_action::GoalResponse::REJECT;
-        }
-
-        if ( this->callStateMachineServer(PSME::TAKE_OFF, false) != rclcpp::FutureReturnCode::SUCCESS)
-        {
-            RCLCPP_ERROR(this->get_logger(), "Failed to call service state_machine_event");
             return rclcpp_action::GoalResponse::REJECT;
         }
 
@@ -84,6 +80,11 @@ public:
 
     void onExecute(const std::shared_ptr<GoalHandleTakeoff> goal_handle)
     {
+        if (this->callStateMachineServer(PSME::TAKE_OFF) != rclcpp::FutureReturnCode::SUCCESS)
+        {
+            RCLCPP_ERROR(this->get_logger(), "Failed to call service state_machine_event");
+        }
+
         if (takeoff_speed_->onExecute(goal_handle))
         {
             RCLCPP_INFO(this->get_logger(), "Takeoff succeeded");
@@ -94,31 +95,19 @@ public:
         }
 
         // TODO: Always changing to flying
-        if (this->callStateMachineServer(PSME::TOOK_OFF, true) != rclcpp::FutureReturnCode::SUCCESS) {
+        if (this->callStateMachineServer(PSME::TOOK_OFF) != rclcpp::FutureReturnCode::SUCCESS) {
             RCLCPP_ERROR(this->get_logger(), "Failed to call service state_machine_event");
         }
     }
 
 private:
-    rclcpp::FutureReturnCode callStateMachineServer(const int8_t machine_event, bool is_async)
+    rclcpp::FutureReturnCode callStateMachineServer(const int8_t machine_event)
     {
         auto request = std::make_shared<as2_msgs::srv::SetPlatformStateMachineEvent::Request>();
         request->event.event = machine_event;
 
-        if (is_async)
-        {
-            auto future = state_machine_event_cli_->async_send_request(request);
-            return rclcpp::spin_until_future_complete(this->get_node_base_interface(), future);
-        }
-        else
-        {
-            // Local aux node to call client asyncronous, since can not spin at the same node
-            std::shared_ptr<rclcpp::Node> aux_node_ptr;
-            aux_node_ptr = std::make_shared<rclcpp::Node>("takeoff_baheviour_aux_node");
-            auto state_machine_event_cli = aux_node_ptr->create_client<as2_msgs::srv::SetPlatformStateMachineEvent>(this->generate_global_name(as2_names::services::platform::set_platform_state_machine_event));
-            auto future = state_machine_event_cli->async_send_request(request);
-            return rclcpp::spin_until_future_complete(aux_node_ptr, future);
-        }
+        auto future = state_machine_event_cli_->async_send_request(request);
+        return rclcpp::spin_until_future_complete(this->get_node_base_interface(), future);
     }
 
 private:
