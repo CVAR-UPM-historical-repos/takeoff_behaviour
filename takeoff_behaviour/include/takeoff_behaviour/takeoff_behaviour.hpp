@@ -71,7 +71,7 @@ public:
         {
             takeoff_plugin_ = loader_->createSharedInstance(this->get_parameter("default_takeoff_plugin").as_string());
             takeoff_plugin_->initialize(this, this->get_parameter("takeoff_height_threshold").as_double());
-            RCLCPP_INFO(this->get_logger(), "PLUGIN LOADED: %s", this->get_parameter("default_takeoff_plugin").as_string().c_str());
+            RCLCPP_INFO(this->get_logger(), "TAKEOFF PLUGIN LOADED: %s", this->get_parameter("default_takeoff_plugin").as_string().c_str());
         }
         catch (pluginlib::PluginlibException &ex)
         {
