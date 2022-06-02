@@ -64,7 +64,7 @@ public:
         {
             this->declare_parameter<std::string>("default_takeoff_plugin");
         }
-        catch(const std::exception& e)
+        catch(const rclcpp::ParameterTypeException& e)
         {
             RCLCPP_FATAL(this->get_logger(), "Launch argument <default_takeoff_plugin> not defined or malformed: %s", e.what());
             this->~TakeOffBehaviour();
@@ -73,7 +73,7 @@ public:
         {
             this->declare_parameter<double>("default_takeoff_altitude");
         }
-        catch(const std::exception& e)
+        catch(const rclcpp::ParameterTypeException& e)
         {
             RCLCPP_FATAL(this->get_logger(), "Launch argument <default_takeoff_altitude> not defined or malformed: %s", e.what());
             this->~TakeOffBehaviour();
@@ -82,7 +82,7 @@ public:
         {
             this->declare_parameter<double>("default_takeoff_speed");
         }
-        catch(const std::exception& e)
+        catch(const rclcpp::ParameterTypeException& e)
         {
             RCLCPP_FATAL(this->get_logger(), "Launch argument <default_takeoff_speed> not defined or malformed: %s", e.what());
             this->~TakeOffBehaviour();
@@ -91,7 +91,7 @@ public:
         {
             this->declare_parameter<double>("takeoff_height_threshold");
         }
-        catch(const std::exception& e)
+        catch(const rclcpp::ParameterTypeException& e)
         {
             RCLCPP_FATAL(this->get_logger(), "Launch argument <takeoff_height_threshold> not defined or malformed: %s", e.what());
             this->~TakeOffBehaviour();
