@@ -62,7 +62,8 @@ public:
     {
         try
         {
-            this->declare_parameter<std::string>("default_takeoff_plugin");
+            // this->declare_parameter<std::string>("default_takeoff_plugin", "");
+            this->declare_parameter("default_takeoff_plugin"); // TODO: Fix for ROS2 Galactic
         }
         catch(const rclcpp::ParameterTypeException& e)
         {
@@ -71,7 +72,8 @@ public:
         }
         try
         {
-            this->declare_parameter<double>("default_takeoff_altitude");
+            // this->declare_parameter<double>("default_takeoff_altitude");
+            this->declare_parameter("default_takeoff_altitude"); // TODO: Fix for ROS2 Galactic
         }
         catch(const rclcpp::ParameterTypeException& e)
         {
@@ -80,7 +82,8 @@ public:
         }
         try
         {
-            this->declare_parameter<double>("default_takeoff_speed");
+            // this->declare_parameter<double>("default_takeoff_speed");
+            this->declare_parameter("default_takeoff_speed"); // TODO: Fix for ROS2 Galactic
         }
         catch(const rclcpp::ParameterTypeException& e)
         {
@@ -89,7 +92,8 @@ public:
         }
         try
         {
-            this->declare_parameter<double>("takeoff_height_threshold");
+            // this->declare_parameter<double>("takeoff_height_threshold");
+            this->declare_parameter("takeoff_height_threshold"); // TODO: Fix for ROS2 Galactic
         }
         catch(const rclcpp::ParameterTypeException& e)
         {
