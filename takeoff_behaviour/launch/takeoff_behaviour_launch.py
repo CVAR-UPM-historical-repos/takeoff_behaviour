@@ -18,7 +18,7 @@ def generate_launch_description():
             package='takeoff_behaviour',
             executable='takeoff_behaviour_node',
             namespace=LaunchConfiguration('drone_id'),
-            parameters=[config],
+            parameters=[LaunchConfiguration('config')],
             output='screen',
             emulate_tty=True
         )

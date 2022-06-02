@@ -60,24 +60,61 @@ public:
         : as2::BasicBehaviour<as2_msgs::action::TakeOff>(as2_names::actions::behaviours::takeoff),
           state_machine_event_cli_(as2_names::services::platform::set_platform_state_machine_event)
     {
-        this->declare_parameter("default_takeoff_plugin");
-        this->declare_parameter("default_takeoff_altitude");
-        this->declare_parameter("default_takeoff_speed");
-        this->declare_parameter("takeoff_height_threshold");
+        try
+        {
+            this->declare_parameter<std::string>("default_takeoff_plugin");
+        }
+        catch(const std::exception& e)
+        {
+            RCLCPP_FATAL(this->get_logger(), "Launch argument <default_takeoff_plugin> not defined or malformed: %s", e.what());
+            this->~TakeOffBehaviour();
+        }
+        try
+        {
+            this->declare_parameter<double>("default_takeoff_altitude");
+        }
+        catch(const std::exception& e)
+        {
+            RCLCPP_FATAL(this->get_logger(), "Launch argument <default_takeoff_altitude> not defined or malformed: %s", e.what());
+            this->~TakeOffBehaviour();
+        }
+        try
+        {
+            this->declare_parameter<double>("default_takeoff_speed");
+        }
+        catch(const std::exception& e)
+        {
+            RCLCPP_FATAL(this->get_logger(), "Launch argument <default_takeoff_speed> not defined or malformed: %s", e.what());
+            this->~TakeOffBehaviour();
+        }
+        try
+        {
+            this->declare_parameter<double>("takeoff_height_threshold");
+        }
+        catch(const std::exception& e)
+        {
+            RCLCPP_FATAL(this->get_logger(), "Launch argument <takeoff_height_threshold> not defined or malformed: %s", e.what());
+            this->~TakeOffBehaviour();
+        }
 
         loader_ = std::make_shared<pluginlib::ClassLoader<takeoff_base::TakeOffBase>>("takeoff_plugin_base", "takeoff_base::TakeOffBase");
 
         try
         {
-            takeoff_plugin_ = loader_->createSharedInstance(this->get_parameter("default_takeoff_plugin").as_string());
+            std::string plugin_name = this->get_parameter("default_takeoff_plugin").as_string();
+            plugin_name += "::Plugin";
+            takeoff_plugin_ = loader_->createSharedInstance(plugin_name);
             takeoff_plugin_->initialize(this, this->get_parameter("takeoff_height_threshold").as_double());
-            RCLCPP_INFO(this->get_logger(), "TAKEOFF PLUGIN LOADED: %s", this->get_parameter("default_takeoff_plugin").as_string().c_str());
+            RCLCPP_INFO(this->get_logger(), "TAKEOFF PLUGIN LOADED: %s", plugin_name.c_str());
         }
         catch (pluginlib::PluginlibException &ex)
         {
             RCLCPP_ERROR(this->get_logger(), "The plugin failed to load for some reason. Error: %s\n", ex.what());
+            this->~TakeOffBehaviour();
         }
     };
+
+    ~TakeOffBehaviour(){};
 
     rclcpp_action::GoalResponse onAccepted(const std::shared_ptr<const as2_msgs::action::TakeOff::Goal> goal)
     {
