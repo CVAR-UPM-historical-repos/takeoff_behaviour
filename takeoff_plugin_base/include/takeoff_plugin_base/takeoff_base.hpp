@@ -40,11 +40,15 @@
 #include "as2_core/node.hpp"
 #include "as2_core/names/actions.hpp"
 #include "as2_core/names/topics.hpp"
+#include <as2_core/frame_utils/frame_utils.hpp>
 
 #include "rclcpp_action/rclcpp_action.hpp"
 
 #include <as2_msgs/action/take_off.hpp>
 #include <nav_msgs/msg/odometry.hpp>
+
+#include <Eigen/Dense>
+#include "tf2_geometry_msgs/tf2_geometry_msgs.h"
 
 namespace takeoff_base
 {
@@ -75,11 +79,39 @@ namespace takeoff_base
 
         // To initialize needed publisher for each plugin
         virtual void ownInit(as2::Node *node_ptr){};
+        
+        bool checkGoalCondition()
+        {
+            if ((desired_height_ - actual_heigth_) <= 0 + this->takeoff_height_threshold_)
+            {
+               return true;
+            }
+            return false;
+        };
 
     private:
         // TODO: if onExecute is done with timer no atomic attributes needed
         void odomCb(const nav_msgs::msg::Odometry::ConstSharedPtr msg)
         {
+            odom_received_ = true;
+            pose_mutex_.lock();
+            actual_position_ = {
+                msg->pose.pose.position.x, 
+                msg->pose.pose.position.y,
+                msg->pose.pose.position.z};
+
+            actual_speed_ = {
+                msg->twist.twist.linear.x, 
+                msg->twist.twist.linear.y,
+                msg->twist.twist.linear.z};
+            
+            actual_q_ = {
+                msg->pose.pose.orientation.x, 
+                msg->pose.pose.orientation.y, 
+                msg->pose.pose.orientation.z, 
+                msg->pose.pose.orientation.w};
+            pose_mutex_.unlock();
+
             this->actual_heigth_ = msg->pose.pose.position.z;
             this->actual_z_speed_ = msg->twist.twist.linear.z;
         };
@@ -88,8 +120,15 @@ namespace takeoff_base
         as2::Node *node_ptr_;
         float takeoff_height_threshold_;
 
+        std::mutex pose_mutex_;
+        Eigen::Vector3d actual_position_;
+        Eigen::Vector3d actual_speed_;
+        tf2::Quaternion actual_q_;
+
         std::atomic<float> actual_heigth_;
         std::atomic<float> actual_z_speed_;
+
+        std::atomic<bool> odom_received_ = false;
 
         float desired_speed_ = 0.0;
         float desired_height_ = 0.0;
