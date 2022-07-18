@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
-set(PROJECT_NAME takeoff_plugin_base VERSION 0.1.0)
+set(PROJECT_NAME takeoff_plugin_base VERSION 0.2.0)
 project(${PROJECT_NAME})
 
 # Default to C++17
@@ -14,7 +14,8 @@ set(PROJECT_DEPENDENCIES
   pluginlib
   rclcpp
   rclcpp_action
-  nav_msgs
+  geometry_msgs
+  message_filters
   as2_core
   as2_msgs
   tf2_geometry_msgs
