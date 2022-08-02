@@ -86,11 +86,13 @@ namespace takeoff_base
         // To initialize needed publisher for each plugin
         virtual void ownInit(as2::Node *node_ptr){};
         
-        bool checkGoalCondition()
+        virtual bool checkGoalCondition()
         {
-            if ((desired_height_ - actual_heigth_) <= 0 + this->takeoff_height_threshold_)
+            
+            if ((desired_height_ - actual_heigth_) <= 0 + this->takeoff_height_threshold_&& 
+                (actual_z_speed_ <= 0.1f && actual_z_speed_ >= -0.1f))
             {
-               return true;
+                return true;
             }
             return false;
         };
