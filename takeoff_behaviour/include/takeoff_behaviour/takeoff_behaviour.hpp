@@ -58,7 +58,7 @@ public:
 
     TakeOffBehaviour()
         : as2::BasicBehaviour<as2_msgs::action::TakeOff>(as2_names::actions::behaviours::takeoff),
-          state_machine_event_cli_(as2_names::services::platform::set_platform_state_machine_event)
+          state_machine_event_cli_(as2_names::services::platform::set_platform_state_machine_event, this->as2_node_shared_from_this())
     {
         try
         {
