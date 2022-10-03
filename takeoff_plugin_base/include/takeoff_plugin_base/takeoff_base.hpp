@@ -40,7 +40,7 @@
 #include "as2_core/node.hpp"
 #include "as2_core/names/actions.hpp"
 #include "as2_core/names/topics.hpp"
-#include <as2_core/frame_utils/frame_utils.hpp>
+#include <as2_core/utils/frame_utils.hpp>
 
 #include "rclcpp_action/rclcpp_action.hpp"
 #include <message_filters/subscriber.h>
@@ -70,6 +70,12 @@ namespace takeoff_base
             twist_sub_ = std::make_shared<message_filters::Subscriber<geometry_msgs::msg::TwistStamped>>(node_ptr_, as2_names::topics::self_localization::twist, as2_names::topics::self_localization::qos.get_rmw_qos_profile());
             synchronizer_ = std::make_shared<message_filters::Synchronizer<approximate_policy>>(approximate_policy(5), *(pose_sub_.get()), *(twist_sub_.get()));
             synchronizer_->registerCallback(&TakeOffBase::state_callback, this);
+
+            node_ptr_->declare_parameter<std::string>("frame_id_pose", "");
+            node_ptr_->get_parameter("frame_id_pose", frame_id_pose_);
+
+            node_ptr_->declare_parameter<std::string>("frame_id_twist", "");
+            node_ptr_->get_parameter("frame_id_twist", frame_id_twist_);
 
             this->ownInit(node_ptr_);
         };
@@ -141,6 +147,9 @@ namespace takeoff_base
 
         float desired_speed_ = 0.0;
         float desired_height_ = 0.0;
+
+        std::string frame_id_pose_ = "";
+        std::string frame_id_twist_ = "";
 
     private:
         std::shared_ptr<message_filters::Subscriber<geometry_msgs::msg::PoseStamped>> pose_sub_;
