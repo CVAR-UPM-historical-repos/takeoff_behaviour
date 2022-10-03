@@ -48,7 +48,7 @@
 #include <pluginlib/class_loader.hpp>
 #include "takeoff_plugin_base/takeoff_base.hpp"
 
-#include "as2_core/synchronous_service_client.hpp"
+#include "rclcpp/rclcpp.hpp"
 
 class TakeOffBehaviour : public as2::BasicBehaviour<as2_msgs::action::TakeOff>
 {
@@ -57,8 +57,7 @@ public:
     using PSME = as2_msgs::msg::PlatformStateMachineEvent;
 
     TakeOffBehaviour()
-        : as2::BasicBehaviour<as2_msgs::action::TakeOff>(as2_names::actions::behaviours::takeoff),
-          state_machine_event_cli_(as2_names::services::platform::set_platform_state_machine_event, this)
+        : as2::BasicBehaviour<as2_msgs::action::TakeOff>(as2_names::actions::behaviours::takeoff)
     {
         try
         {
@@ -112,6 +111,13 @@ public:
             RCLCPP_ERROR(this->get_logger(), "The plugin failed to load for some reason. Error: %s\n", ex.what());
             this->~TakeOffBehaviour();
         }
+
+        callback_group_ = this->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive, false);
+        callback_group_executor_.add_callback_group(callback_group_, this->get_node_base_interface());
+        service_client_ = this->create_client<as2_msgs::srv::SetPlatformStateMachineEvent>(
+            as2_names::services::platform::set_platform_state_machine_event,
+            rmw_qos_profile_services_default,
+            callback_group_);
     };
 
     ~TakeOffBehaviour(){};
@@ -136,13 +142,7 @@ public:
 
         auto _goal = std::make_shared<const as2_msgs::action::TakeOff::Goal>(new_goal);
 
-        auto request = as2_msgs::srv::SetPlatformStateMachineEvent::Request();
-        auto response = as2_msgs::srv::SetPlatformStateMachineEvent::Response();
-        request.event.event = PSME::TAKE_OFF;
-        if (!state_machine_event_cli_.sendRequest(request, response, 1))
-        {
-            return rclcpp_action::GoalResponse::REJECT;
-        }
+        this->sendEventFSME(PSME::TAKE_OFF, 3);
 
         RCLCPP_INFO(this->get_logger(),
                     "TakeOffBehaviour: TakeOff with speed %f and height %f",
@@ -167,20 +167,36 @@ public:
             RCLCPP_INFO(this->get_logger(), "Takeoff canceled");
         }
 
-        auto request = as2_msgs::srv::SetPlatformStateMachineEvent::Request();
-        auto response = as2_msgs::srv::SetPlatformStateMachineEvent::Response();
-        request.event.event = PSME::TOOK_OFF;
-        if (!state_machine_event_cli_.sendRequest(request, response, 1))
-        {
-            RCLCPP_ERROR(this->get_logger(), "Failed to call service state_machine_event");
+        this->sendEventFSME(PSME::TOOK_OFF, 3);
+    }
+
+private:
+    bool sendEventFSME(const int8_t event, int timeout)
+    {
+        auto request = std::make_shared<as2_msgs::srv::SetPlatformStateMachineEvent::Request>();
+        request->event.event = event;
+
+        auto result_future = service_client_->async_send_request(request);
+
+        rclcpp::FutureReturnCode rc;
+        rc = callback_group_executor_.spin_until_future_complete(result_future, std::chrono::seconds(timeout));
+        if (rc != rclcpp::FutureReturnCode::SUCCESS) {
+            return false;
         }
+
+        if (!result_future.get()->success) {
+            return false;
+        }
+        return true;
     }
 
 private:
     std::shared_ptr<pluginlib::ClassLoader<takeoff_base::TakeOffBase>> loader_;
     std::shared_ptr<takeoff_base::TakeOffBase> takeoff_plugin_;
 
-    as2::SynchronousServiceClient<as2_msgs::srv::SetPlatformStateMachineEvent> state_machine_event_cli_;
+    rclcpp::CallbackGroup::SharedPtr callback_group_;
+    rclcpp::executors::SingleThreadedExecutor callback_group_executor_;
+    rclcpp::Client<as2_msgs::srv::SetPlatformStateMachineEvent>::SharedPtr service_client_;
 };
 
 #endif // TAKE_OFF_BEHAVIOUR_HPP
