@@ -11,7 +11,7 @@
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- * 
+ *
  * 1. Redistributions of source code must retain the above copyright notice,
  *    this list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
@@ -20,7 +20,7 @@
  * 3. Neither the name of the copyright holder nor the names of its contributors
  *    may be used to endorse or promote products derived from this software
  *    without specific prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
  * THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
@@ -36,18 +36,17 @@
 
 // "Copyright [year] <Copyright Owner>"
 
-#include "takeoff_behaviour/takeoff_behaviour.hpp"
 #include "as2_core/core_functions.hpp"
+#include "takeoff_behaviour/takeoff_behaviour.hpp"
 
-int main(int argc, char * argv[])
-{
+int main(int argc, char *argv[]) {
   setvbuf(stdout, NULL, _IONBF, BUFSIZ);
   rclcpp::init(argc, argv);
 
   auto node = std::make_shared<TakeOffBehaviour>();
   node->preset_loop_frequency(30);
   as2::spinLoop(node);
-  
+
   rclcpp::shutdown();
   return 0;
 }

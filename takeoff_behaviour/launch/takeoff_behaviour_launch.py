@@ -12,12 +12,12 @@ def generate_launch_description():
     ])
 
     return LaunchDescription([
-        DeclareLaunchArgument('drone_id', default_value=EnvironmentVariable('AEROSTACK2_SIMULATION_DRONE_ID')),
+        DeclareLaunchArgument('namespace', default_value=EnvironmentVariable('AEROSTACK2_SIMULATION_DRONE_ID')),
         DeclareLaunchArgument('config', default_value=config),
         Node(
             package='takeoff_behaviour',
             executable='takeoff_behaviour_node',
-            namespace=LaunchConfiguration('drone_id'),
+            namespace=LaunchConfiguration('namespace'),
             parameters=[LaunchConfiguration('config')],
             output='screen',
             emulate_tty=True
