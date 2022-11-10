@@ -97,8 +97,7 @@ protected:
   virtual void ownInit(as2::Node *node_ptr){};
 
   virtual bool checkGoalCondition() {
-    if ((desired_height_ - actual_heigth_) <= 0 + this->takeoff_height_threshold_ &&
-        (actual_z_speed_ <= 0.1f && actual_z_speed_ >= -0.1f)) {
+    if ((desired_height_ - actual_heigth_) <= 0 + this->takeoff_height_threshold_) {
       return true;
     }
     return false;
