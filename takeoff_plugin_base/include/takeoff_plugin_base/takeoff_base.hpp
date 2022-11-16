@@ -37,122 +37,136 @@
 #ifndef TAKEOFF_BASE_HPP
 #define TAKEOFF_BASE_HPP
 
-#include <as2_core/utils/frame_utils.hpp>
+#include <rclcpp_action/rclcpp_action.hpp>
+
+#include "as2_behavior/behavior_server.hpp"
 #include "as2_core/names/actions.hpp"
 #include "as2_core/names/topics.hpp"
 #include "as2_core/node.hpp"
-
-#include <message_filters/subscriber.h>
-#include <message_filters/sync_policies/approximate_time.h>
-#include <message_filters/time_synchronizer.h>
-#include <geometry_msgs/msg/pose_stamped.hpp>
-#include <geometry_msgs/msg/twist_stamped.hpp>
-#include "rclcpp_action/rclcpp_action.hpp"
-
-#include <as2_msgs/action/take_off.hpp>
+#include "as2_core/utils/frame_utils.hpp"
+#include "as2_core/utils/tf_utils.hpp"
+#include "as2_msgs/action/take_off.hpp"
+#include "as2_msgs/msg/platform_info.hpp"
+#include "as2_msgs/msg/platform_status.hpp"
+#include "motion_reference_handlers/hover_motion.hpp"
 
 #include <Eigen/Dense>
-#include "tf2_geometry_msgs/tf2_geometry_msgs.h"
+#include <geometry_msgs/msg/pose_stamped.hpp>
+#include <geometry_msgs/msg/twist_stamped.hpp>
 
 namespace takeoff_base {
+
+struct takeoff_plugin_params {
+  double takeoff_height_threshold = 0.0;
+};
+
 class TakeOffBase {
 public:
   using GoalHandleTakeoff = rclcpp_action::ServerGoalHandle<as2_msgs::action::TakeOff>;
 
-  void initialize(as2::Node *node_ptr, float takeoff_height_threshold) {
-    node_ptr_                 = node_ptr;
-    takeoff_height_threshold_ = takeoff_height_threshold;
-
-    pose_sub_ = std::make_shared<message_filters::Subscriber<geometry_msgs::msg::PoseStamped>>(
-        node_ptr_, as2_names::topics::self_localization::pose,
-        as2_names::topics::self_localization::qos.get_rmw_qos_profile());
-    twist_sub_ = std::make_shared<message_filters::Subscriber<geometry_msgs::msg::TwistStamped>>(
-        node_ptr_, as2_names::topics::self_localization::twist,
-        as2_names::topics::self_localization::qos.get_rmw_qos_profile());
-    synchronizer_ = std::make_shared<message_filters::Synchronizer<approximate_policy>>(
-        approximate_policy(5), *(pose_sub_.get()), *(twist_sub_.get()));
-    synchronizer_->registerCallback(&TakeOffBase::state_callback, this);
-
-    node_ptr_->declare_parameter<std::string>("frame_id_pose", "");
-    node_ptr_->get_parameter("frame_id_pose", frame_id_pose_);
-
-    node_ptr_->declare_parameter<std::string>("frame_id_twist", "");
-    node_ptr_->get_parameter("frame_id_twist", frame_id_twist_);
-
-    this->ownInit(node_ptr_);
-  };
-
-  virtual rclcpp_action::GoalResponse onAccepted(
-      const std::shared_ptr<const as2_msgs::action::TakeOff::Goal> goal) = 0;
-  virtual rclcpp_action::CancelResponse onCancel(
-      const std::shared_ptr<GoalHandleTakeoff> goal_handle)                    = 0;
-  virtual bool onExecute(const std::shared_ptr<GoalHandleTakeoff> goal_handle) = 0;
-
+  TakeOffBase(){};
   virtual ~TakeOffBase(){};
 
-protected:
-  TakeOffBase(){};
+  void initialize(as2::Node *node_ptr,
+                  const std::shared_ptr<as2::tf::TfHandler> tf_handler,
+                  takeoff_plugin_params &params) {
+    node_ptr_             = node_ptr;
+    params_               = params;
+    hover_motion_handler_ = std::make_shared<as2::motionReferenceHandlers::HoverMotion>(node_ptr_);
+    this->ownInit();
+  }
 
-  // To initialize needed publisher for each plugin
-  virtual void ownInit(as2::Node *node_ptr){};
+  virtual void state_callback(geometry_msgs::msg::PoseStamped &pose_msg,
+                              geometry_msgs::msg::TwistStamped &twist_msg) {
+    actual_pose_ = pose_msg;
 
-  virtual bool checkGoalCondition() {
-    if ((desired_height_ - actual_heigth_) <= 0 + this->takeoff_height_threshold_ &&
-        (actual_z_speed_ <= 0.1f && actual_z_speed_ >= -0.1f)) {
+    feedback_.actual_takeoff_height = actual_pose_.pose.position.z;
+    feedback_.actual_takeoff_speed  = twist_msg.twist.linear.z;
+
+    localization_received_ = true;
+    return;
+  }
+
+  virtual bool on_deactivate(const std::shared_ptr<std::string> &message) = 0;
+  virtual bool on_pause(const std::shared_ptr<std::string> &message)      = 0;
+  virtual bool on_resume(const std::shared_ptr<std::string> &message)     = 0;
+
+  virtual bool on_activate(std::shared_ptr<const as2_msgs::action::TakeOff::Goal> goal) {
+    if (!localization_received_) {
+      RCLCPP_ERROR(node_ptr_->get_logger(), "Behavior reject, there is no localization");
+      return false;
+    }
+
+    if (own_activate(goal)) {
+      goal_ = *goal;
       return true;
     }
     return false;
-  };
+  }
 
-private:
-  // TODO: if onExecute is done with timer no atomic attributes needed
-  void state_callback(const geometry_msgs::msg::PoseStamped::ConstSharedPtr pose_msg,
-                      const geometry_msgs::msg::TwistStamped::ConstSharedPtr twist_msg) {
-    odom_received_ = true;
-    pose_mutex_.lock();
-    actual_position_ = {pose_msg->pose.position.x, pose_msg->pose.position.y,
-                        pose_msg->pose.position.z};
+  virtual bool on_modify(std::shared_ptr<const as2_msgs::action::TakeOff::Goal> goal) {
+    if (!localization_received_) {
+      RCLCPP_ERROR(node_ptr_->get_logger(), "Behavior reject, there is no localization");
+      return false;
+    }
 
-    actual_speed_ = {twist_msg->twist.linear.x, twist_msg->twist.linear.y,
-                     twist_msg->twist.linear.z};
+    if (own_activate(goal)) {
+      goal_ = *goal;
+      return true;
+    }
+    return false;
+  }
 
-    actual_q_ = {pose_msg->pose.orientation.x, pose_msg->pose.orientation.y,
-                 pose_msg->pose.orientation.z, pose_msg->pose.orientation.w};
+  virtual as2_behavior::ExecutionStatus on_run(
+      const std::shared_ptr<const as2_msgs::action::TakeOff::Goal> goal,
+      std::shared_ptr<as2_msgs::action::TakeOff::Feedback> &feedback_msg,
+      std::shared_ptr<as2_msgs::action::TakeOff::Result> &result_msg) {
 
-    this->actual_heigth_  = pose_msg->pose.position.z;
-    this->actual_z_speed_ = twist_msg->twist.linear.z;
-    pose_mutex_.unlock();
+    as2_behavior::ExecutionStatus status = own_run();
+
+    feedback_msg = std::make_shared<as2_msgs::action::TakeOff::Feedback>(feedback_);
+    result_msg   = std::make_shared<as2_msgs::action::TakeOff::Result>(result_);
+    return status;
+  }
+
+  virtual void on_excution_end(const as2_behavior::ExecutionStatus &state) {
+    localization_received_ = false;
+    own_execution_end(state);
+    return;
+  }
+
+protected:
+  virtual void ownInit(){};
+
+  virtual bool own_activate(std::shared_ptr<const as2_msgs::action::TakeOff::Goal> goal) {
+    return true;
+  }
+
+  virtual as2_behavior::ExecutionStatus own_run() = 0;
+
+  virtual bool own_modify(std::shared_ptr<const as2_msgs::action::TakeOff::Goal> goal) {
+    return true;
+  }
+
+  virtual void own_execution_end(const as2_behavior::ExecutionStatus &state) = 0;
+
+  inline void sendHover() {
+    hover_motion_handler_->sendHover();
+    return;
   };
 
 protected:
   as2::Node *node_ptr_;
-  float takeoff_height_threshold_;
 
-  std::mutex pose_mutex_;
-  Eigen::Vector3d actual_position_;
-  Eigen::Vector3d actual_speed_;
-  tf2::Quaternion actual_q_;
+  as2_msgs::action::TakeOff::Goal goal_;
+  as2_msgs::action::TakeOff::Feedback feedback_;
+  as2_msgs::action::TakeOff::Result result_;
 
-  std::atomic<float> actual_heigth_;
-  std::atomic<float> actual_z_speed_;
+  takeoff_plugin_params params_;
+  geometry_msgs::msg::PoseStamped actual_pose_;
+  bool localization_received_ = false;
 
-  std::atomic<bool> odom_received_ = false;
-
-  float desired_speed_  = 0.0;
-  float desired_height_ = 0.0;
-
-  std::string frame_id_pose_  = "";
-  std::string frame_id_twist_ = "";
-
-private:
-  std::shared_ptr<message_filters::Subscriber<geometry_msgs::msg::PoseStamped>> pose_sub_;
-  std::shared_ptr<message_filters::Subscriber<geometry_msgs::msg::TwistStamped>> twist_sub_;
-  typedef message_filters::sync_policies::ApproximateTime<geometry_msgs::msg::PoseStamped,
-                                                          geometry_msgs::msg::TwistStamped>
-      approximate_policy;
-  std::shared_ptr<message_filters::Synchronizer<approximate_policy>> synchronizer_;
-};  // TakeOffBase class
-
+  std::shared_ptr<as2::motionReferenceHandlers::HoverMotion> hover_motion_handler_ = nullptr;
+};  // class TakeOffBase
 }  // namespace takeoff_base
-
 #endif  // TAKEOFF_BASE_HPP

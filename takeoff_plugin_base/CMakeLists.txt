@@ -23,6 +23,7 @@ set(PROJECT_DEPENDENCIES
   message_filters
   as2_core
   as2_msgs
+  as2_behavior
   tf2_geometry_msgs
   Eigen3
 )

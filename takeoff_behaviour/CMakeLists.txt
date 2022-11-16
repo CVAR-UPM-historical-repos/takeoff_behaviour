@@ -22,6 +22,8 @@ set(PROJECT_DEPENDENCIES
   rclcpp_action
   as2_core
   as2_msgs
+  as2_behavior
+  motion_reference_handlers
 )
 
 foreach(DEPENDENCY ${PROJECT_DEPENDENCIES})
