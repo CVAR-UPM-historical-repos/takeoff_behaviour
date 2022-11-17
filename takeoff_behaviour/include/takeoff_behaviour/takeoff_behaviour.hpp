@@ -37,6 +37,9 @@
 #ifndef TAKE_OFF_BEHAVIOUR_HPP
 #define TAKE_OFF_BEHAVIOUR_HPP
 
+#include <pluginlib/class_loader.hpp>
+#include <rclcpp_action/rclcpp_action.hpp>
+
 #include "as2_behavior/behavior_server.hpp"
 #include "as2_core/names/actions.hpp"
 #include "as2_core/names/services.hpp"
@@ -46,13 +49,10 @@
 #include "as2_msgs/action/take_off.hpp"
 #include "as2_msgs/msg/platform_info.hpp"
 #include "as2_msgs/srv/set_platform_state_machine_event.hpp"
-#include "rclcpp/rclcpp.hpp"
 #include "takeoff_plugin_base/takeoff_base.hpp"
 
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/twist_stamped.hpp>
-
-#include <pluginlib/class_loader.hpp>
 
 class TakeOffBehaviour : public as2_behavior::BehaviorServer<as2_msgs::action::TakeOff> {
 public:

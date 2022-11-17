@@ -40,17 +40,12 @@
 #include <rclcpp_action/rclcpp_action.hpp>
 
 #include "as2_behavior/behavior_server.hpp"
-#include "as2_core/names/actions.hpp"
-#include "as2_core/names/topics.hpp"
-#include "as2_core/node.hpp"
-#include "as2_core/utils/frame_utils.hpp"
 #include "as2_core/utils/tf_utils.hpp"
 #include "as2_msgs/action/take_off.hpp"
 #include "as2_msgs/msg/platform_info.hpp"
 #include "as2_msgs/msg/platform_status.hpp"
 #include "motion_reference_handlers/hover_motion.hpp"
 
-#include <Eigen/Dense>
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/twist_stamped.hpp>
 
@@ -121,7 +116,6 @@ public:
       const std::shared_ptr<const as2_msgs::action::TakeOff::Goal> goal,
       std::shared_ptr<as2_msgs::action::TakeOff::Feedback> &feedback_msg,
       std::shared_ptr<as2_msgs::action::TakeOff::Result> &result_msg) {
-
     as2_behavior::ExecutionStatus status = own_run();
 
     feedback_msg = std::make_shared<as2_msgs::action::TakeOff::Feedback>(feedback_);

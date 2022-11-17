@@ -17,13 +17,13 @@ set(PROJECT_DEPENDENCIES
   ament_cmake
   ament_cmake_ros
   pluginlib
-  takeoff_plugin_base
-  rclcpp
   rclcpp_action
+  takeoff_plugin_base
   as2_core
   as2_msgs
   as2_behavior
   motion_reference_handlers
+  geometry_msgs
 )
 
 foreach(DEPENDENCY ${PROJECT_DEPENDENCIES})
