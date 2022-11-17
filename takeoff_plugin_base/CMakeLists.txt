@@ -17,14 +17,12 @@ set(PROJECT_DEPENDENCIES
   ament_cmake
   ament_cmake_ros
   pluginlib
-  rclcpp
   rclcpp_action
-  geometry_msgs
-  message_filters
   as2_core
   as2_msgs
-  tf2_geometry_msgs
-  Eigen3
+  as2_behavior
+  motion_reference_handlers
+  geometry_msgs
 )
 
 foreach(DEPENDENCY ${PROJECT_DEPENDENCIES})
