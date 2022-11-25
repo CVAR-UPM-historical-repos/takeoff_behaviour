@@ -112,6 +112,8 @@ public:
       this->~TakeOffBehaviour();
     }
 
+    base_link_frame_id_ = as2::tf::generateTfName(this, "base_link");
+
     platform_cli_ = std::make_shared<
         as2::SynchronousServiceClient<as2_msgs::srv::SetPlatformStateMachineEvent>>(
         as2_names::services::platform::set_platform_state_machine_event, this);
@@ -127,15 +129,12 @@ public:
 
   void state_callback(const geometry_msgs::msg::TwistStamped::SharedPtr _twist_msg) {
     geometry_msgs::msg::PoseStamped pose_msg;
-    geometry_msgs::msg::TwistStamped twist_msg = *_twist_msg;
-
-    if (!tf_handler_->tryConvert(twist_msg, "earth")) return;
+    geometry_msgs::msg::TwistStamped twist_msg;
 
     try {
-      pose_msg = tf_handler_->getPoseStamped("earth", as2::tf::generateTfName(this, "base_link"),
-                                             tf2_ros::fromMsg(twist_msg.header.stamp));
+      auto [pose_msg, twist_msg] = tf_handler_->getState(*_twist_msg, "earth", "earth", base_link_frame_id_);
     } catch (tf2::TransformException &ex) {
-      RCLCPP_WARN(this->get_logger(), "Could not get state pose transform: %s", ex.what());
+      RCLCPP_WARN(this->get_logger(), "Could not get transform: %s", ex.what());
       return;
     }
 
@@ -226,6 +225,7 @@ public:
   }
 
 private:
+  std::string base_link_frame_id_;
   std::shared_ptr<pluginlib::ClassLoader<takeoff_base::TakeOffBase>> loader_;
   std::shared_ptr<takeoff_base::TakeOffBase> takeoff_plugin_;
   std::shared_ptr<as2::tf::TfHandler> tf_handler_;
